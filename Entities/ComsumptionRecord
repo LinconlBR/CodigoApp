@@ -1,0 +1,51 @@
+{
+  "name": "ConsumptionRecord",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do registro"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "water",
+        "energy",
+        "waste",
+        "gas",
+        "transportation"
+      ],
+      "description": "Categoria do consumo"
+    },
+    "value": {
+      "type": "number",
+      "description": "Valor do consumo"
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "liters",
+        "kwh",
+        "kg",
+        "m3",
+        "km"
+      ],
+      "description": "Unidade de medida"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observações adicionais"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Custo em reais"
+    }
+  },
+  "required": [
+    "date",
+    "category",
+    "value",
+    "unit"
+  ]
+}

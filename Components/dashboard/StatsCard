@@ -1,0 +1,53 @@
+import React from 'react';
+import { Card } from "@/components/ui/card";
+import { TrendingDown, TrendingUp, Minus } from "lucide-react";
+
+export default function StatsCard({ title, value, unit, trend, icon: Icon, color, size = "normal" }) {
+  const getTrendIcon = () => {
+    if (trend > 0) return <TrendingUp className="w-4 h-4" />;
+    if (trend < 0) return <TrendingDown className="w-4 h-4" />;
+    return <Minus className="w-4 h-4" />;
+  };
+
+  const getTrendColor = () => {
+    if (trend > 0) return "text-red-600 bg-red-50";
+    if (trend < 0) return "text-emerald-600 bg-emerald-50";
+    return "text-gray-600 bg-gray-50";
+  };
+
+  const cardClass = size === "large" ? "md:col-span-2 md:row-span-2" : "";
+
+  return (
+    <Card className={`relative overflow-hidden hover:shadow-xl transition-all duration-300 border-0 bg-white/80 backdrop-blur-sm ${cardClass}`}>
+      <div className={`absolute top-0 right-0 w-32 h-32 ${color} rounded-full opacity-10 transform translate-x-8 -translate-y-8`} />
+      
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
+            <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
+          </div>
+          {trend !== undefined && (
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${getTrendColor()}`}>
+              {getTrendIcon()}
+              <span className="text-xs font-semibold">{Math.abs(trend)}%</span>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <p className="text-sm text-gray-500">{unit}</p>
+          </div>
+        </div>
+
+        {size === "large" && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500">Últimos 30 dias</p>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}

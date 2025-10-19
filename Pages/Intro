@@ -1,0 +1,145 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
+import { Leaf, Sparkles } from "lucide-react";
+
+const narrative = [
+  "Nosso planeta está em um ponto de virada.",
+  "Cada escolha, por menor que seja, tem um impacto.",
+  "E se suas escolhas diárias pudessem curar o mundo?",
+  "O poder da mudança não está em governos ou corporações distantes.",
+  "Ele está em suas mãos. Na sua casa.",
+  "Você tem o poder de mudar o mundo.",
+];
+
+export default function Intro() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(0);
+  const [showButton, setShowButton] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      try {
+        const user = await base44.auth.me();
+        if (user && user.has_seen_intro) {
+          if (user.onboarding_completed) {
+            navigate(createPageUrl("Dashboard"));
+          } else {
+            navigate(createPageUrl("Onboarding"));
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao verificar status do usuário:", error);
+      }
+    };
+    checkUserStatus();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (step < narrative.length) {
+      const timer = setTimeout(() => {
+        setStep(step + 1);
+      }, 3000); // Muda a cada 3 segundos
+      return () => clearTimeout(timer);
+    } else {
+      const buttonTimer = setTimeout(() => {
+        setShowButton(true);
+      }, 1500);
+      return () => clearTimeout(buttonTimer);
+    }
+  }, [step]);
+
+  const handleStart = async () => {
+    setIsUpdating(true);
+    try {
+      await base44.auth.updateMe({ has_seen_intro: true });
+      navigate(createPageUrl("Onboarding"));
+    } catch (error) {
+      console.error("Erro ao atualizar usuário:", error);
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <div className="relative w-screen h-screen overflow-hidden bg-black">
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-40"
+      >
+        <source src="https://videos.pexels.com/video-files/3209828/3209828-hd_1920_1080_25fps.mp4" type="video/mp4" />
+      </video>
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-white text-center p-4 bg-black/30">
+        <AnimatePresence>
+          <motion.h1
+            key={step}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 1 }}
+            className="text-3xl md:text-5xl font-bold max-w-4xl"
+          >
+            {narrative[step] || "Comece sua jornada."}
+          </motion.h1>
+        </AnimatePresence>
+        
+        {showButton && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="mt-12 flex flex-col items-center"
+          >
+            <motion.div
+              animate={{
+                scale: [1, 1.05, 1],
+                boxShadow: [
+                  "0 0 0 0 rgba(45, 212, 191, 0)",
+                  "0 0 20px 10px rgba(45, 212, 191, 0.4)",
+                  "0 0 0 0 rgba(45, 212, 191, 0)",
+                ],
+              }}
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="rounded-full"
+            >
+              <Button
+                onClick={handleStart}
+                disabled={isUpdating}
+                className="h-16 px-10 text-lg font-semibold rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-2xl transition-all duration-300 transform hover:scale-105"
+              >
+                {isUpdating ? (
+                  "Iniciando..."
+                ) : (
+                  <>
+                    <Leaf className="w-6 h-6 mr-3" />
+                    Eu quero mudar o mundo
+                  </>
+                )}
+              </Button>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1 }}
+              className="mt-6 flex items-center gap-2 text-emerald-200"
+            >
+              <Sparkles className="w-4 h-4" />
+              <p>Clique para começar</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}

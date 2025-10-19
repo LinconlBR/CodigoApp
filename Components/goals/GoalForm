@@ -1,0 +1,149 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Save, X } from "lucide-react";
+import { format, addDays } from "date-fns";
+
+const categories = [
+  { value: "water", label: "Água" },
+  { value: "energy", label: "Energia" },
+  { value: "waste", label: "Resíduos" },
+  { value: "gas", label: "Gás" },
+  { value: "transportation", label: "Transporte" },
+  { value: "general", label: "Geral" },
+];
+
+export default function GoalForm({ onClose }) {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "",
+    target_value: "",
+    unit: "",
+    deadline: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
+    reward_points: "10"
+  });
+
+  const createGoalMutation = useMutation({
+    mutationFn: (data) => base44.entities.Goal.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      onClose();
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createGoalMutation.mutate({
+      ...formData,
+      target_value: parseFloat(formData.target_value),
+      reward_points: parseInt(formData.reward_points)
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Criar Nova Meta</h3>
+        <Button type="button" variant="ghost" size="icon" onClick={onClose}>
+          <X className="w-5 h-5" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">Título da Meta</Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({...formData, title: e.target.value})}
+            placeholder="Ex: Reduzir consumo de água"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category">Categoria</Label>
+          <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})} required>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Descrição</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({...formData, description: e.target.value})}
+          placeholder="Descreva sua meta..."
+          rows={3}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="target_value">Valor Alvo</Label>
+          <Input
+            id="target_value"
+            type="number"
+            step="0.01"
+            value={formData.target_value}
+            onChange={(e) => setFormData({...formData, target_value: e.target.value})}
+            placeholder="100"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="unit">Unidade</Label>
+          <Input
+            id="unit"
+            value={formData.unit}
+            onChange={(e) => setFormData({...formData, unit: e.target.value})}
+            placeholder="litros"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="deadline">Prazo</Label>
+          <Input
+            id="deadline"
+            type="date"
+            value={formData.deadline}
+            onChange={(e) => setFormData({...formData, deadline: e.target.value})}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-4">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          className="bg-gradient-to-r from-emerald-500 to-teal-600"
+          disabled={createGoalMutation.isPending}
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {createGoalMutation.isPending ? "Salvando..." : "Criar Meta"}
+        </Button>
+      </div>
+    </form>
+  );
+}

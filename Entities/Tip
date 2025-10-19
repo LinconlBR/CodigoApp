@@ -1,0 +1,63 @@
+{
+  "name": "Tip",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Título da dica"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conteúdo da dica"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "water",
+        "energy",
+        "waste",
+        "gas",
+        "transportation",
+        "general",
+        "food",
+        "shopping"
+      ],
+      "description": "Categoria da dica"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "medium",
+        "hard"
+      ],
+      "description": "Nível de dificuldade"
+    },
+    "impact": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Impacto ambiental"
+    },
+    "liked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcado como favorito"
+    },
+    "implemented": {
+      "type": "boolean",
+      "default": false,
+      "description": "Já implementado"
+    }
+  },
+  "required": [
+    "title",
+    "content",
+    "category",
+    "difficulty",
+    "impact"
+  ]
+}

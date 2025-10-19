@@ -1,0 +1,92 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Lightbulb, Droplets, Zap, Trash2, Fuel, Car, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import TipCard from "../components/tips/TipCard";
+
+const categories = [
+  { value: "all", label: "Todas", icon: Lightbulb },
+  { value: "water", label: "Água", icon: Droplets },
+  { value: "energy", label: "Energia", icon: Zap },
+  { value: "waste", label: "Resíduos", icon: Trash2 },
+  { value: "transportation", label: "Transporte", icon: Car },
+  { value: "food", label: "Alimentação", icon: UtensilsCrossed },
+  { value: "shopping", label: "Compras", icon: ShoppingCart },
+];
+
+export default function Tips() {
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  const { data: tips, isLoading } = useQuery({
+    queryKey: ['tips'],
+    queryFn: () => base44.entities.Tip.list('-created_date'),
+    initialData: [],
+  });
+
+  const filteredTips = activeCategory === "all" 
+    ? tips 
+    : tips.filter(tip => tip.category === activeCategory);
+
+  return (
+    <div className="p-4 md:p-8 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+            Dicas Sustentáveis 💡
+          </h1>
+          <p className="text-gray-600">Práticas simples para um estilo de vida mais sustentável</p>
+        </div>
+
+        <Card className="p-4 mb-6 border-0 bg-white/80 backdrop-blur-sm">
+          <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+            <TabsList className="w-full flex flex-wrap justify-start gap-2 bg-transparent h-auto">
+              {categories.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <TabsTrigger
+                    key={cat.value}
+                    value={cat.value}
+                    className="flex items-center gap-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
+                  >
+                    <Icon className="w-4 h-4" />
+                    {cat.label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </Tabs>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isLoading ? (
+            Array(6).fill(0).map((_, i) => (
+              <Card key={i} className="p-6 border-0 bg-white/80">
+                <Skeleton className="h-6 w-3/4 mb-4" />
+                <Skeleton className="h-20 w-full mb-4" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
+              </Card>
+            ))
+          ) : filteredTips.length === 0 ? (
+            <div className="col-span-full">
+              <Card className="p-12 text-center border-0 bg-white/80 backdrop-blur-sm">
+                <Lightbulb className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma dica encontrada</h3>
+                <p className="text-gray-600">Tente selecionar outra categoria</p>
+              </Card>
+            </div>
+          ) : (
+            filteredTips.map((tip) => <TipCard key={tip.id} tip={tip} />)
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,307 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { User, Edit2, Save, X, LogOut, Home, Users, Car, Zap, Droplets } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+
+const transportLabels = {
+  car_gasoline: "Carro (Gasolina)",
+  car_electric: "Carro Elétrico",
+  car_hybrid: "Carro Híbrido",
+  motorcycle: "Moto",
+  public_transport: "Transporte Público",
+  bicycle: "Bicicleta",
+  walk: "A pé",
+  mixed: "Misto"
+};
+
+const residenceLabels = {
+  small: "Pequena (até 50m²)",
+  medium: "Média (50-100m²)",
+  large: "Grande (mais de 100m²)"
+};
+
+const recyclingLabels = {
+  always: "Sempre",
+  sometimes: "Às vezes",
+  rarely: "Raramente",
+  never: "Nunca"
+};
+
+export default function Profile() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const [formData, setFormData] = useState({
+    household_size: "",
+    transportation_type: "",
+    has_solar_panels: false,
+    heating_type: "",
+    residence_size: "",
+    has_garden: false,
+    recycling_habit: ""
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        household_size: user.household_size || "",
+        transportation_type: user.transportation_type || "",
+        has_solar_panels: user.has_solar_panels || false,
+        heating_type: user.heating_type || "",
+        residence_size: user.residence_size || "",
+        has_garden: user.has_garden || false,
+        recycling_habit: user.recycling_habit || ""
+      });
+    }
+  }, [user]);
+
+  const updateUserMutation = useMutation({
+    mutationFn: (data) => base44.auth.updateMe(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      setEditing(false);
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    updateUserMutation.mutate({
+      ...formData,
+      household_size: parseInt(formData.household_size)
+    });
+  };
+
+  const handleLogout = () => {
+    base44.auth.logout();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-8 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Meu Perfil</h1>
+            <p className="text-gray-600">Gerencie suas informações e preferências</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="text-red-600 hover:bg-red-50"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </Button>
+        </div>
+
+        <Card className="p-6 md:p-8 border-0 bg-white/80 backdrop-blur-sm shadow-xl mb-6">
+          <div className="flex items-center gap-4 mb-6 pb-6 border-b">
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+              {user?.full_name?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-gray-900">{user?.full_name}</h2>
+              <p className="text-gray-600">{user?.email}</p>
+              <Badge className="mt-2 bg-emerald-100 text-emerald-700">
+                {user?.role === 'admin' ? 'Administrador' : 'Usuário'}
+              </Badge>
+            </div>
+          </div>
+
+          {!editing ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Users className="w-5 h-5 text-emerald-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Pessoas na casa</p>
+                    <p className="font-semibold text-gray-900">{user?.household_size || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Home className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Tamanho da residência</p>
+                    <p className="font-semibold text-gray-900">
+                      {residenceLabels[user?.residence_size] || '-'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Car className="w-5 h-5 text-purple-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Transporte principal</p>
+                    <p className="font-semibold text-gray-900">
+                      {transportLabels[user?.transportation_type] || '-'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Zap className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Energia</p>
+                    <p className="font-semibold text-gray-900">
+                      {user?.has_solar_panels ? '☀️ Com painéis solares' : 'Sem painéis solares'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <Droplets className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Jardim/Horta</p>
+                    <p className="font-semibold text-gray-900">
+                      {user?.has_garden ? '🌿 Sim' : 'Não possui'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <div className="text-xl mt-0.5">♻️</div>
+                  <div>
+                    <p className="text-sm text-gray-600">Hábito de reciclagem</p>
+                    <p className="font-semibold text-gray-900">
+                      {recyclingLabels[user?.recycling_habit] || '-'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setEditing(true)}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar Informações
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="household_size">Pessoas na casa</Label>
+                  <Input
+                    id="household_size"
+                    type="number"
+                    value={formData.household_size}
+                    onChange={(e) => setFormData({...formData, household_size: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="residence_size">Tamanho da residência</Label>
+                  <select
+                    id="residence_size"
+                    value={formData.residence_size}
+                    onChange={(e) => setFormData({...formData, residence_size: e.target.value})}
+                    className="w-full rounded-md border border-gray-300 p-2"
+                  >
+                    <option value="">Selecione</option>
+                    <option value="small">Pequena</option>
+                    <option value="medium">Média</option>
+                    <option value="large">Grande</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="transportation_type">Transporte</Label>
+                  <select
+                    id="transportation_type"
+                    value={formData.transportation_type}
+                    onChange={(e) => setFormData({...formData, transportation_type: e.target.value})}
+                    className="w-full rounded-md border border-gray-300 p-2"
+                  >
+                    <option value="">Selecione</option>
+                    {Object.entries(transportLabels).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="recycling_habit">Frequência de reciclagem</Label>
+                  <select
+                    id="recycling_habit"
+                    value={formData.recycling_habit}
+                    onChange={(e) => setFormData({...formData, recycling_habit: e.target.value})}
+                    className="w-full rounded-md border border-gray-300 p-2"
+                  >
+                    <option value="">Selecione</option>
+                    {Object.entries(recyclingLabels).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.has_solar_panels}
+                    onChange={(e) => setFormData({...formData, has_solar_panels: e.target.checked})}
+                    className="rounded"
+                  />
+                  <span>Possuo painéis solares</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.has_garden}
+                    onChange={(e) => setFormData({...formData, has_garden: e.target.checked})}
+                    className="rounded"
+                  />
+                  <span>Tenho jardim/horta</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditing(false)}
+                  className="flex-1"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateUserMutation.isPending}
+                  className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {updateUserMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}

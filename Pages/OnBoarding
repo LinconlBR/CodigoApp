@@ -1,0 +1,439 @@
+
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Leaf, Home, Users, Car, Zap, Droplets, Recycle, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { motion, AnimatePresence } from "framer-motion";
+
+const transportOptions = [
+  { value: "car_gasoline", label: "Carro (Gasolina)", icon: "🚗" },
+  { value: "car_electric", label: "Carro Elétrico", icon: "⚡" },
+  { value: "car_hybrid", label: "Carro Híbrido", icon: "🔋" },
+  { value: "motorcycle", label: "Moto", icon: "🏍️" },
+  { value: "public_transport", label: "Transporte Público", icon: "🚌" },
+  { value: "bicycle", label: "Bicicleta", icon: "🚴" },
+  { value: "walk", label: "A pé", icon: "🚶" },
+  { value: "mixed", label: "Misto", icon: "🔄" }
+];
+
+const heatingOptions = [
+  { value: "electric", label: "Elétrico", icon: "⚡" },
+  { value: "gas", label: "Gás", icon: "🔥" },
+  { value: "solar", label: "Solar", icon: "☀️" },
+  { value: "none", label: "Não tenho", icon: "❌" }
+];
+
+const residenceSizeOptions = [
+  { value: "small", label: "Pequena (até 50m²)", icon: "🏠" },
+  { value: "medium", label: "Média (50-100m²)", icon: "🏡" },
+  { value: "large", label: "Grande (mais de 100m²)", icon: "🏘️" }
+];
+
+const recyclingOptions = [
+  { value: "always", label: "Sempre", icon: "♻️" },
+  { value: "sometimes", label: "Às vezes", icon: "🔄" },
+  { value: "rarely", label: "Raramente", icon: "⚠️" },
+  { value: "never", label: "Nunca", icon: "❌" }
+];
+
+export default function Onboarding() {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState({
+    household_size: "",
+    transportation_type: "",
+    has_solar_panels: false,
+    heating_type: "",
+    residence_size: "",
+    has_garden: false,
+    recycling_habit: "",
+    monthly_income_range: "medium"
+  });
+
+  const totalSteps = 4;
+  const progress = (currentStep / totalSteps) * 100;
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const user = await base44.auth.me();
+        if (user) {
+          if (!user.has_seen_intro) {
+            navigate(createPageUrl("Intro"));
+          } else if (user.onboarding_completed) {
+            navigate(createPageUrl("Dashboard"));
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao verificar onboarding:", error);
+      }
+    };
+    checkOnboarding();
+  }, [navigate]);
+
+  const updateUserMutation = useMutation({
+    mutationFn: (data) => base44.auth.updateMe(data),
+    onSuccess: () => {
+      navigate(createPageUrl("Dashboard"));
+    },
+  });
+
+  const handleNext = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSubmit = () => {
+    updateUserMutation.mutate({
+      ...formData,
+      household_size: parseInt(formData.household_size),
+      onboarding_completed: true
+    });
+  };
+
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.household_size && formData.residence_size;
+      case 2:
+        return formData.transportation_type;
+      case 3:
+        return formData.heating_type;
+      case 4:
+        return formData.recycling_habit;
+      default:
+        return true;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <Leaf className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">EcoLar</h1>
+          </div>
+          <p className="text-gray-600 text-lg">Vamos conhecer você melhor! 🌱</p>
+          <p className="text-sm text-gray-500 mt-2">Personalize sua experiência sustentável</p>
+        </motion.div>
+
+        {/* Progress Bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-8"
+        >
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-600">Passo {currentStep} de {totalSteps}</span>
+            <span className="text-sm font-semibold text-emerald-600">{progress.toFixed(0)}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </motion.div>
+
+        {/* Form Card */}
+        <Card className="p-8 border-0 bg-white/90 backdrop-blur-sm shadow-2xl">
+          <AnimatePresence mode="wait">
+            {/* Step 1: Casa e Moradores */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-emerald-100 rounded-xl">
+                    <Home className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Sua Casa</h2>
+                    <p className="text-gray-600">Conte-nos sobre sua residência</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="household_size" className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-600" />
+                    Quantas pessoas moram na casa?
+                  </Label>
+                  <Input
+                    id="household_size"
+                    type="number"
+                    min="1"
+                    value={formData.household_size}
+                    onChange={(e) => setFormData({...formData, household_size: e.target.value})}
+                    placeholder="Ex: 4"
+                    className="text-lg"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tamanho da residência</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {residenceSizeOptions.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={formData.residence_size === option.value ? "default" : "outline"}
+                        className={`h-auto py-4 flex flex-col items-center gap-2 ${
+                          formData.residence_size === option.value 
+                            ? 'bg-emerald-600 hover:bg-emerald-700' 
+                            : ''
+                        }`}
+                        onClick={() => setFormData({...formData, residence_size: option.value})}
+                      >
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="text-sm font-medium">{option.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <Droplets className="w-4 h-4 text-blue-600" />
+                    Características adicionais
+                  </Label>
+                  <div className="flex gap-4">
+                    <Button
+                      type="button"
+                      variant={formData.has_garden ? "default" : "outline"}
+                      className={formData.has_garden ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                      onClick={() => setFormData({...formData, has_garden: !formData.has_garden})}
+                    >
+                      🌿 {formData.has_garden ? 'Tenho' : 'Não tenho'} Jardim/Horta
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 2: Transporte */}
+            {currentStep === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-purple-100 rounded-xl">
+                    <Car className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Transporte</h2>
+                    <p className="text-gray-600">Como você se desloca?</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Principal meio de transporte</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {transportOptions.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={formData.transportation_type === option.value ? "default" : "outline"}
+                        className={`h-auto py-4 flex flex-col items-center gap-2 ${
+                          formData.transportation_type === option.value 
+                            ? 'bg-purple-600 hover:bg-purple-700' 
+                            : ''
+                        }`}
+                        onClick={() => setFormData({...formData, transportation_type: option.value})}
+                      >
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="text-sm font-medium text-center">{option.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 3: Energia */}
+            {currentStep === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-yellow-100 rounded-xl">
+                    <Zap className="w-6 h-6 text-yellow-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Energia</h2>
+                    <p className="text-gray-600">Sobre o consumo de energia</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tipo de aquecimento de água</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {heatingOptions.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={formData.heating_type === option.value ? "default" : "outline"}
+                        className={`h-auto py-4 flex flex-col items-center gap-2 ${
+                          formData.heating_type === option.value 
+                            ? 'bg-yellow-600 hover:bg-yellow-700' 
+                            : ''
+                        }`}
+                        onClick={() => setFormData({...formData, heating_type: option.value})}
+                      >
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="text-sm font-medium">{option.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-yellow-600" />
+                    Energia Solar
+                  </Label>
+                  <Button
+                    type="button"
+                    variant={formData.has_solar_panels ? "default" : "outline"}
+                    className={`w-full h-auto py-4 ${
+                      formData.has_solar_panels ? 'bg-yellow-600 hover:bg-yellow-700' : ''
+                    }`}
+                    onClick={() => setFormData({...formData, has_solar_panels: !formData.has_solar_panels})}
+                  >
+                    ☀️ {formData.has_solar_panels ? 'Tenho' : 'Não tenho'} painéis solares instalados
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 4: Hábitos Sustentáveis */}
+            {currentStep === 4 && (
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-green-100 rounded-xl">
+                    <Recycle className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Hábitos</h2>
+                    <p className="text-gray-600">Seus hábitos sustentáveis atuais</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Com que frequência você recicla?</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {recyclingOptions.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={formData.recycling_habit === option.value ? "default" : "outline"}
+                        className={`h-auto py-4 flex flex-col items-center gap-2 ${
+                          formData.recycling_habit === option.value 
+                            ? 'bg-green-600 hover:bg-green-700' 
+                            : ''
+                        }`}
+                        onClick={() => setFormData({...formData, recycling_habit: option.value})}
+                      >
+                        <span className="text-2xl">{option.icon}</span>
+                        <span className="text-sm font-medium">{option.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-200">
+                  <p className="text-sm text-gray-700 text-center">
+                    <span className="font-semibold">✨ Tudo pronto!</span><br />
+                    Vamos usar essas informações para personalizar suas estatísticas e recomendações.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Navigation Buttons */}
+          <div className="flex gap-3 mt-8">
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBack}
+                className="flex-1"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+            )}
+            
+            {currentStep < totalSteps ? (
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={!isStepValid()}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+              >
+                Próximo
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!isStepValid() || updateUserMutation.isPending}
+                className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+              >
+                {updateUserMutation.isPending ? "Salvando..." : "Finalizar"}
+                <Sparkles className="w-4 h-4 ml-2" />
+              </Button>
+            )}
+          </div>
+        </Card>
+
+        {/* Footer */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center text-sm text-gray-500 mt-6"
+        >
+          Suas informações são privadas e usadas apenas para melhorar sua experiência
+        </motion.p>
+      </div>
+    </div>
+  );
+}

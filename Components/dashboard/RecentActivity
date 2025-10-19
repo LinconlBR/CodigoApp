@@ -1,0 +1,84 @@
+import React from 'react';
+import { Card } from "@/components/ui/card";
+import { Droplets, Zap, Trash2, Fuel, Car } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const categoryIcons = {
+  water: Droplets,
+  energy: Zap,
+  waste: Trash2,
+  gas: Fuel,
+  transportation: Car
+};
+
+const categoryColors = {
+  water: "text-blue-600 bg-blue-50",
+  energy: "text-yellow-600 bg-yellow-50",
+  waste: "text-gray-600 bg-gray-50",
+  gas: "text-orange-600 bg-orange-50",
+  transportation: "text-purple-600 bg-purple-50"
+};
+
+const categoryLabels = {
+  water: "Água",
+  energy: "Energia",
+  waste: "Resíduos",
+  gas: "Gás",
+  transportation: "Transporte"
+};
+
+export default function RecentActivity({ records, isLoading }) {
+  if (isLoading) {
+    return (
+      <Card className="p-6 border-0 bg-white/80 backdrop-blur-sm">
+        <h3 className="font-semibold text-gray-900 mb-4">Atividade Recente</h3>
+        <div className="space-y-3">
+          {Array(5).fill(0).map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-xl" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-32 mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  const recentRecords = records.slice(0, 5);
+
+  return (
+    <Card className="p-6 border-0 bg-white/80 backdrop-blur-sm">
+      <h3 className="font-semibold text-gray-900 mb-4">Atividade Recente</h3>
+      <div className="space-y-3">
+        {recentRecords.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-4">Nenhum registro ainda</p>
+        ) : (
+          recentRecords.map((record) => {
+            const Icon = categoryIcons[record.category];
+            return (
+              <div key={record.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <div className={`p-2 rounded-xl ${categoryColors[record.category]}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{categoryLabels[record.category]}</p>
+                  <p className="text-xs text-gray-500">
+                    {record.value} {record.unit} • {format(new Date(record.date), "d MMM", { locale: ptBR })}
+                  </p>
+                </div>
+                {record.cost && (
+                  <p className="text-sm font-semibold text-gray-700">R$ {record.cost.toFixed(2)}</p>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </Card>
+  );
+}

@@ -1,0 +1,192 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Leaf, TrendingDown, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+export default function Calculator() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [formData, setFormData] = useState({
+    electricity: "",
+    gas: "",
+    transportation: "",
+    waste: "",
+    water: ""
+  });
+
+  const calculateFootprint = async () => {
+    setLoading(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Calcule a pegada de carbono mensal baseado nos seguintes dados:
+        - Consumo de eletricidade: ${formData.electricity} kWh
+        - Consumo de gás: ${formData.gas} m³
+        - Transporte (km por dia): ${formData.transportation} km
+        - Resíduos gerados: ${formData.waste} kg
+        - Consumo de água: ${formData.water} litros
+        
+        Forneça:
+        1. Total de CO2 emitido em kg
+        2. Comparação com a média brasileira
+        3. 3 recomendações práticas para reduzir
+        4. Impacto equivalente (ex: árvores necessárias para compensar)`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            total_co2_kg: { type: "number" },
+            comparison: { type: "string" },
+            recommendations: {
+              type: "array",
+              items: { type: "string" }
+            },
+            equivalent_impact: { type: "string" }
+          }
+        }
+      });
+      setResult(response);
+    } catch (error) {
+      console.error("Erro ao calcular pegada de carbono:", error);
+    }
+    setLoading(false);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    calculateFootprint();
+  };
+
+  return (
+    <div className="p-4 md:p-8 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <Leaf className="w-8 h-8 text-emerald-600" />
+            Calculadora de Pegada de Carbono
+          </h1>
+          <p className="text-gray-600">Descubra seu impacto ambiental e como reduzi-lo</p>
+        </div>
+
+        <Card className="p-6 md:p-8 border-0 bg-white/80 backdrop-blur-sm shadow-xl mb-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="electricity">Consumo de Eletricidade (kWh/mês)</Label>
+                <Input
+                  id="electricity"
+                  type="number"
+                  value={formData.electricity}
+                  onChange={(e) => setFormData({...formData, electricity: e.target.value})}
+                  placeholder="Ex: 150"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gas">Consumo de Gás (m³/mês)</Label>
+                <Input
+                  id="gas"
+                  type="number"
+                  value={formData.gas}
+                  onChange={(e) => setFormData({...formData, gas: e.target.value})}
+                  placeholder="Ex: 10"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="transportation">Transporte (km/dia)</Label>
+                <Input
+                  id="transportation"
+                  type="number"
+                  value={formData.transportation}
+                  onChange={(e) => setFormData({...formData, transportation: e.target.value})}
+                  placeholder="Ex: 30"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="waste">Resíduos Gerados (kg/mês)</Label>
+                <Input
+                  id="waste"
+                  type="number"
+                  value={formData.waste}
+                  onChange={(e) => setFormData({...formData, waste: e.target.value})}
+                  placeholder="Ex: 50"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="water">Consumo de Água (litros/dia)</Label>
+                <Input
+                  id="water"
+                  type="number"
+                  value={formData.water}
+                  onChange={(e) => setFormData({...formData, water: e.target.value})}
+                  placeholder="Ex: 200"
+                  required
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg"
+              disabled={loading}
+            >
+              {loading ? "Calculando..." : "Calcular Pegada de Carbono"}
+            </Button>
+          </form>
+        </Card>
+
+        {result && (
+          <Card className="p-6 md:p-8 border-0 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-emerald-600 rounded-xl">
+                <TrendingDown className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Seus Resultados</h2>
+                <p className="text-gray-600">Pegada de carbono mensal</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 mb-6 shadow-md">
+              <p className="text-sm text-gray-600 mb-2">Emissão Total de CO₂</p>
+              <p className="text-4xl font-bold text-emerald-600 mb-2">
+                {result.total_co2_kg.toFixed(2)} kg
+              </p>
+              <p className="text-sm text-gray-700">{result.comparison}</p>
+            </div>
+
+            <Alert className="mb-6 border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-900">
+                {result.equivalent_impact}
+              </AlertDescription>
+            </Alert>
+
+            <div className="bg-white rounded-xl p-6 shadow-md">
+              <h3 className="font-semibold text-gray-900 mb-4">Recomendações para Redução</h3>
+              <ul className="space-y-3">
+                {result.recommendations.map((rec, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-sm font-bold text-emerald-600">{index + 1}</span>
+                    </div>
+                    <p className="text-gray-700">{rec}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}

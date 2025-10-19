@@ -1,0 +1,61 @@
+import React from 'react';
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Target, CheckCircle2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export default function GoalsProgress({ goals, isLoading }) {
+  if (isLoading) {
+    return (
+      <Card className="p-6 border-0 bg-white/80 backdrop-blur-sm">
+        <h3 className="font-semibold text-gray-900 mb-4">Progresso das Metas</h3>
+        <div className="space-y-4">
+          {Array(3).fill(0).map((_, i) => (
+            <div key={i}>
+              <Skeleton className="h-4 w-32 mb-2" />
+              <Skeleton className="h-2 w-full" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  const activeGoals = goals.filter(g => g.status === 'active').slice(0, 3);
+
+  return (
+    <Card className="p-6 border-0 bg-white/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-900">Progresso das Metas</h3>
+        <Target className="w-5 h-5 text-emerald-600" />
+      </div>
+      
+      <div className="space-y-4">
+        {activeGoals.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-4">Nenhuma meta ativa</p>
+        ) : (
+          activeGoals.map((goal) => {
+            const progress = Math.min((goal.current_value / goal.target_value) * 100, 100);
+            const isCompleted = progress >= 100;
+
+            return (
+              <div key={goal.id} className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                    <p className="text-sm font-medium text-gray-900">{goal.title}</p>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-600">{progress.toFixed(0)}%</p>
+                </div>
+                <Progress value={progress} className="h-2" />
+                <p className="text-xs text-gray-500">
+                  {goal.current_value} / {goal.target_value} {goal.unit}
+                </p>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </Card>
+  );
+}

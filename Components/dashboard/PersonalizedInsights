@@ -1,0 +1,152 @@
+import React from 'react';
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, TrendingDown, Droplets, Zap, Leaf, AlertCircle } from "lucide-react";
+
+const transportImpact = {
+  car_gasoline: { co2: "alto", label: "Carro (Gasolina)", color: "text-red-600" },
+  car_electric: { co2: "baixo", label: "Carro Elétrico", color: "text-green-600" },
+  car_hybrid: { co2: "médio", label: "Carro Híbrido", color: "text-yellow-600" },
+  motorcycle: { co2: "médio", label: "Moto", color: "text-yellow-600" },
+  public_transport: { co2: "baixo", label: "Transporte Público", color: "text-green-600" },
+  bicycle: { co2: "zero", label: "Bicicleta", color: "text-emerald-600" },
+  walk: { co2: "zero", label: "A pé", color: "text-emerald-600" },
+  mixed: { co2: "médio", label: "Misto", color: "text-yellow-600" }
+};
+
+export default function PersonalizedInsights({ user, stats }) {
+  const getWaterInsight = () => {
+    const perPerson = parseFloat(stats.waterPerPerson);
+    const avgBrazilian = 150; // litros por dia por pessoa
+    
+    if (perPerson < avgBrazilian) {
+      return {
+        type: "success",
+        icon: Droplets,
+        title: "Consumo de água abaixo da média!",
+        message: `Você está consumindo ${perPerson} litros/dia por pessoa, abaixo da média brasileira de ${avgBrazilian}L. Parabéns!`,
+        color: "text-emerald-600 bg-emerald-50"
+      };
+    }
+    return {
+      type: "warning",
+      icon: Droplets,
+      title: "Oportunidade de economia",
+      message: `Consumo de ${perPerson}L/dia por pessoa. Tente banhos mais curtos e feche a torneira ao escovar os dentes.`,
+      color: "text-blue-600 bg-blue-50"
+    };
+  };
+
+  const getEnergyInsight = () => {
+    if (user.has_solar_panels) {
+      return {
+        type: "success",
+        icon: Zap,
+        title: "Energia Solar Ativa! ☀️",
+        message: "Sua energia solar está reduzindo sua pegada de carbono significativamente. Continue assim!",
+        color: "text-yellow-600 bg-yellow-50"
+      };
+    }
+    
+    const perPerson = parseFloat(stats.energyPerPerson);
+    const avgBrazilian = 100; // kWh por mês por pessoa
+    
+    if (perPerson > avgBrazilian) {
+      return {
+        type: "tip",
+        icon: Zap,
+        title: "Dica: Considere energia solar",
+        message: `Seu consumo está acima da média. Painéis solares podem reduzir sua conta em até 95%!`,
+        color: "text-amber-600 bg-amber-50"
+      };
+    }
+    return null;
+  };
+
+  const getTransportInsight = () => {
+    const transport = transportImpact[user.transportation_type];
+    if (!transport) return null;
+
+    if (transport.co2 === "alto") {
+      return {
+        type: "alert",
+        icon: AlertCircle,
+        title: "Alto impacto de transporte",
+        message: `${transport.label} gera alta emissão de CO₂. Considere carona solidária ou transporte público quando possível.`,
+        color: "text-red-600 bg-red-50"
+      };
+    } else if (transport.co2 === "zero") {
+      return {
+        type: "success",
+        icon: Leaf,
+        title: "Transporte sustentável!",
+        message: `${transport.label} - zero emissões! Você está fazendo uma diferença incrível para o planeta.`,
+        color: "text-emerald-600 bg-emerald-50"
+      };
+    }
+    return null;
+  };
+
+  const getGardenInsight = () => {
+    if (user.has_garden) {
+      return {
+        type: "success",
+        icon: Leaf,
+        title: "Jardim/Horta presente! 🌿",
+        message: "Ótimo! Sua área verde ajuda a capturar CO₂ e pode fornecer alimentos frescos.",
+        color: "text-green-600 bg-green-50"
+      };
+    }
+    return null;
+  };
+
+  const insights = [
+    getWaterInsight(),
+    getEnergyInsight(),
+    getTransportInsight(),
+    getGardenInsight()
+  ].filter(Boolean);
+
+  return (
+    <Card className="p-6 mb-6 border-0 bg-gradient-to-br from-emerald-500/5 via-teal-500/5 to-cyan-500/5 backdrop-blur-sm">
+      <div className="flex items-center gap-3 mb-4">
+        <Sparkles className="w-5 h-5 text-emerald-600" />
+        <h3 className="font-semibold text-gray-900 text-lg">Insights Personalizados</h3>
+        <Badge variant="secondary" className="ml-auto bg-emerald-100 text-emerald-700">
+          Para sua casa
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {insights.map((insight, index) => {
+          const Icon = insight.icon;
+          return (
+            <div
+              key={index}
+              className={`p-4 rounded-xl ${insight.color} border border-current/10`}
+            >
+              <div className="flex items-start gap-3">
+                <Icon className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold mb-1">{insight.title}</p>
+                  <p className="text-sm opacity-90">{insight.message}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">
+            🏠 Residência {user.residence_size === 'small' ? 'Pequena' : user.residence_size === 'medium' ? 'Média' : 'Grande'}
+          </span>
+          <span className="text-gray-600">
+            ♻️ Recicla: {user.recycling_habit === 'always' ? 'Sempre' : user.recycling_habit === 'sometimes' ? 'Às vezes' : user.recycling_habit === 'rarely' ? 'Raramente' : 'Nunca'}
+          </span>
+        </div>
+      </div>
+    </Card>
+  );
+}

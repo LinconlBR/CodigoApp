@@ -1,0 +1,154 @@
+
+import React, { useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Droplets, Zap, Trash2, TrendingDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+
+import StatsCard from "../components/dashboard/StatsCard";
+import QuickActions from "../components/dashboard/QuickActions";
+import RecentActivity from "../components/dashboard/RecentActivity";
+import GoalsProgress from "../components/dashboard/GoalsProgress";
+import ConsumptionChart from "../components/dashboard/ConsumptionChart";
+import PersonalizedInsights from "../components/dashboard/PersonalizedInsights";
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: records, isLoading: recordsLoading } = useQuery({
+    queryKey: ['consumptionRecords'],
+    queryFn: () => base44.entities.ConsumptionRecord.list('-date'),
+    initialData: [],
+  });
+
+  const { data: goals, isLoading: goalsLoading } = useQuery({
+    queryKey: ['goals'],
+    queryFn: () => base44.entities.Goal.list('-created_date'),
+    initialData: [],
+  });
+
+  useEffect(() => {
+    if (user) {
+      if (!user.has_seen_intro) {
+        navigate(createPageUrl("Intro"));
+      } else if (!user.onboarding_completed) {
+        navigate(createPageUrl("Onboarding"));
+      }
+    }
+  }, [user, navigate]);
+
+  const calculateStats = () => {
+    const last30Days = records.filter(r => {
+      const recordDate = new Date(r.date);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return recordDate >= thirtyDaysAgo;
+    });
+
+    const waterConsumption = last30Days
+      .filter(r => r.category === 'water')
+      .reduce((sum, r) => sum + r.value, 0);
+
+    const energyConsumption = last30Days
+      .filter(r => r.category === 'energy')
+      .reduce((sum, r) => sum + r.value, 0);
+
+    const wasteGenerated = last30Days
+      .filter(r => r.category === 'waste')
+      .reduce((sum, r) => sum + r.value, 0);
+
+    const totalCost = last30Days.reduce((sum, r) => sum + (r.cost || 0), 0);
+
+    const householdSize = user?.household_size || 1;
+    
+    return {
+      water: waterConsumption.toFixed(0),
+      waterPerPerson: (waterConsumption / householdSize).toFixed(0),
+      energy: energyConsumption.toFixed(0),
+      energyPerPerson: (energyConsumption / householdSize).toFixed(0),
+      waste: wasteGenerated.toFixed(0),
+      cost: totalCost.toFixed(2)
+    };
+  };
+
+  const stats = calculateStats();
+
+  if (!user?.onboarding_completed || !user?.has_seen_intro) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-8 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Olá, {user?.full_name?.split(' ')[0] || 'usuário'}! 👋
+          </h1>
+          <p className="text-gray-600">
+            Casa com {user?.household_size || 0} {user?.household_size === 1 ? 'pessoa' : 'pessoas'} • 
+            Veja o resumo do seu impacto ambiental
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <StatsCard
+            title="Consumo de Água"
+            value={stats.water}
+            unit="litros"
+            trend={-12}
+            icon={Droplets}
+            color="bg-blue-500"
+          />
+          <StatsCard
+            title="Consumo de Energia"
+            value={stats.energy}
+            unit="kWh"
+            trend={-8}
+            icon={Zap}
+            color="bg-yellow-500"
+          />
+          <StatsCard
+            title="Resíduos Gerados"
+            value={stats.waste}
+            unit="kg"
+            trend={-15}
+            icon={Trash2}
+            color="bg-gray-500"
+          />
+          <StatsCard
+            title="Economia Total"
+            value={`R$ ${stats.cost}`}
+            unit="último mês"
+            icon={TrendingDown}
+            color="bg-emerald-500"
+          />
+        </div>
+
+        {user && <PersonalizedInsights user={user} stats={stats} />}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <ConsumptionChart records={records} />
+          </div>
+          <QuickActions />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <RecentActivity records={records} isLoading={recordsLoading} />
+          <GoalsProgress goals={goals} isLoading={goalsLoading} />
+        </div>
+      </div>
+    </div>
+  );
+}
+

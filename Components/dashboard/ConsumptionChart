@@ -1,0 +1,64 @@
+import React from 'react';
+import { Card } from "@/components/ui/card";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { format, subDays, startOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+export default function ConsumptionChart({ records }) {
+  const getLast7DaysData = () => {
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = startOfDay(subDays(new Date(), i));
+      const dateStr = format(date, 'yyyy-MM-dd');
+      
+      const dayRecords = records.filter(r => r.date === dateStr);
+      
+      data.push({
+        date: format(date, 'dd/MM', { locale: ptBR }),
+        agua: dayRecords.filter(r => r.category === 'water').reduce((sum, r) => sum + r.value, 0),
+        energia: dayRecords.filter(r => r.category === 'energy').reduce((sum, r) => sum + r.value, 0),
+      });
+    }
+    return data;
+  };
+
+  const data = getLast7DaysData();
+
+  return (
+    <Card className="p-6 border-0 bg-white/80 backdrop-blur-sm md:col-span-2">
+      <h3 className="font-semibold text-gray-900 mb-4">Consumo nos Últimos 7 Dias</h3>
+      <ResponsiveContainer width="100%" height={250}>
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: '12px' }} />
+          <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'white', 
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+            }}
+          />
+          <Legend />
+          <Line 
+            type="monotone" 
+            dataKey="agua" 
+            stroke="#3b82f6" 
+            strokeWidth={2}
+            name="Água (L)"
+            dot={{ fill: '#3b82f6', r: 4 }}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="energia" 
+            stroke="#eab308" 
+            strokeWidth={2}
+            name="Energia (kWh)"
+            dot={{ fill: '#eab308', r: 4 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+}

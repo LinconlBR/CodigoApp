@@ -1,0 +1,65 @@
+{
+  "name": "Goal",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Título da meta"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descrição detalhada"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "water",
+        "energy",
+        "waste",
+        "gas",
+        "transportation",
+        "general"
+      ],
+      "description": "Categoria da meta"
+    },
+    "target_value": {
+      "type": "number",
+      "description": "Valor alvo"
+    },
+    "current_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor atual"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unidade de medida"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Prazo para alcançar"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "expired"
+      ],
+      "default": "active",
+      "description": "Status da meta"
+    },
+    "reward_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Pontos de recompensa"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "target_value",
+    "deadline"
+  ]
+}

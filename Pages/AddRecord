@@ -1,0 +1,194 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Save, Droplets, Zap, Trash2, Fuel, Car } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { format } from "date-fns";
+
+const categories = [
+  { value: "water", label: "Água", icon: Droplets, color: "text-blue-600", units: ["liters"] },
+  { value: "energy", label: "Energia", icon: Zap, color: "text-yellow-600", units: ["kwh"] },
+  { value: "waste", label: "Resíduos", icon: Trash2, color: "text-gray-600", units: ["kg"] },
+  { value: "gas", label: "Gás", icon: Fuel, color: "text-orange-600", units: ["m3"] },
+  { value: "transportation", label: "Transporte", icon: Car, color: "text-purple-600", units: ["km"] },
+];
+
+const unitLabels = {
+  liters: "Litros",
+  kwh: "kWh",
+  kg: "Quilogramas",
+  m3: "Metros Cúbicos",
+  km: "Quilômetros"
+};
+
+export default function AddRecord() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    date: format(new Date(), 'yyyy-MM-dd'),
+    category: "",
+    value: "",
+    unit: "",
+    cost: "",
+    notes: ""
+  });
+
+  const createRecordMutation = useMutation({
+    mutationFn: (data) => base44.entities.ConsumptionRecord.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consumptionRecords'] });
+      navigate(createPageUrl("Dashboard"));
+    },
+  });
+
+  const handleCategoryChange = (category) => {
+    const categoryData = categories.find(c => c.value === category);
+    setFormData({
+      ...formData,
+      category,
+      unit: categoryData?.units[0] || ""
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    createRecordMutation.mutate({
+      ...formData,
+      value: parseFloat(formData.value),
+      cost: formData.cost ? parseFloat(formData.cost) : undefined
+    });
+  };
+
+  const selectedCategory = categories.find(c => c.value === formData.category);
+
+  return (
+    <div className="p-4 md:p-8 min-h-screen">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate(createPageUrl("Dashboard"))}
+            className="rounded-full"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Registrar Consumo</h1>
+            <p className="text-gray-600">Monitore seus hábitos diários</p>
+          </div>
+        </div>
+
+        <Card className="p-6 md:p-8 border-0 bg-white/80 backdrop-blur-sm shadow-xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="date">Data</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoria</Label>
+                <Select value={formData.category} onValueChange={handleCategoryChange} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => {
+                      const Icon = cat.icon;
+                      return (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className={`w-4 h-4 ${cat.color}`} />
+                            {cat.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="value">Valor</Label>
+                <Input
+                  id="value"
+                  type="number"
+                  step="0.01"
+                  value={formData.value}
+                  onChange={(e) => setFormData({...formData, value: e.target.value})}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="unit">Unidade</Label>
+                <Select value={formData.unit} onValueChange={(value) => setFormData({...formData, unit: value})} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedCategory?.units.map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {unitLabels[unit]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cost">Custo (R$) - Opcional</Label>
+              <Input
+                id="cost"
+                type="number"
+                step="0.01"
+                value={formData.cost}
+                onChange={(e) => setFormData({...formData, cost: e.target.value})}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Observações - Opcional</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                placeholder="Adicione observações sobre este consumo..."
+                rows={4}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg"
+              disabled={createRecordMutation.isPending}
+            >
+              <Save className="w-5 h-5 mr-2" />
+              {createRecordMutation.isPending ? "Salvando..." : "Salvar Registro"}
+            </Button>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}
